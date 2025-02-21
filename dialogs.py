@@ -17,12 +17,14 @@ class Dialogs:
             "Task Management:",
             "  a          : Add new task",
             "  e          : Edit selected task",
-            "  d          : Delete selected task",
+            "  D          : Delete selected task",
+            "  d          : Add dependency to selected task (Space to select)",
             "  Space      : Complete task",
             "",
             "Filtering:",
             "  p          : Filter by project",
             "  t          : Filter by tag",
+            "  T          : Toggle show/hide completed tasks",
             "  c          : Clear filters",
             "",
             "Display:",
@@ -119,7 +121,7 @@ class Dialogs:
 
             if key == 27:  # ESC
                 return
-            elif key == ord("d"):  # Delete field value
+            elif key == ord("D"):  # Delete field value
                 field_name = fields[current_field][0]
                 fields[current_field] = (field_name, "")
 
@@ -298,3 +300,66 @@ class Dialogs:
 
         finally:
             curses.curs_set(0)
+
+    @staticmethod
+    def select_dependency(stdscr, task_manager, current_task_idx):
+        """Select a task to depend on"""
+        if not task_manager.current_tasks:
+            return None
+
+        height, width = stdscr.getmaxyx()
+        # Create a list of tasks excluding the current task
+        available_tasks = [
+            t for i, t in enumerate(task_manager.current_tasks) if i != current_task_idx
+        ]
+
+        if not available_tasks:
+            return None
+
+        win = curses.newwin(
+            len(available_tasks) + 4,
+            width - 4,
+            height // 2 - len(available_tasks) // 2,
+            2,
+        )
+        win.keypad(True)  # Enable keypad for arrow keys
+        win.box()
+        win.addstr(0, 2, "Select Task to Depend On (Space to select, ESC to cancel)")
+        win.addstr(1, 2, "Use ↑/↓ or j/k to navigate")
+
+        selected = 0
+        while True:
+            for idx, task in enumerate(available_tasks):
+                # Calculate available width for the task string
+                available_width = width - 12  # Account for borders and padding
+
+                # Format task ID and project info
+                task_id = f"{task['id']:4}"
+                project_info = f" [{task['project']}]" if task["project"] else ""
+
+                # Calculate remaining width for description
+                desc_width = (
+                    available_width - len(task_id) - len(project_info) - 2
+                )  # -2 for ". "
+                description = task["description"][:desc_width]
+
+                # Build the task string with proper padding
+                task_str = f"{task_id}. {description:<{desc_width}}{project_info}"
+
+                if idx == selected:
+                    win.attron(curses.color_pair(3))
+                win.addstr(idx + 2, 2, task_str)
+                if idx == selected:
+                    win.attroff(curses.color_pair(3))
+
+            win.refresh()
+            key = win.getch()
+
+            if key == ord(" "):  # Space to select
+                return available_tasks[selected]
+            elif key == 27:  # ESC
+                return None
+            elif key == curses.KEY_UP or key == ord("k"):
+                selected = (selected - 1) % len(available_tasks)
+            elif key == curses.KEY_DOWN or key == ord("j"):
+                selected = (selected + 1) % len(available_tasks)

@@ -5,7 +5,7 @@ class UIComponents:
     @staticmethod
     def draw_header(stdscr, current_view, task_manager):
         height, width = stdscr.getmaxyx()
-        
+
         # Build filter info
         filters = []
         if task_manager.filter_project:
@@ -14,10 +14,10 @@ class UIComponents:
             filters.append(f"Tag:{task_manager.filter_tag}")
         if task_manager.filter_text:
             filters.append(f"Text:{task_manager.filter_text}")
-        
+
         filter_str = " | Filters: " + ", ".join(filters) if filters else ""
         header = f" Tsakarori | View: {current_view}{filter_str} | Press '?' for help "
-        
+
         stdscr.attron(curses.color_pair(1))
         stdscr.addstr(0, 0, header + " " * (width - len(header) - 1))
         stdscr.attroff(curses.color_pair(1))
@@ -25,9 +25,7 @@ class UIComponents:
     @staticmethod
     def draw_footer(stdscr):
         height, width = stdscr.getmaxyx()
-        footer = (
-            " q:Quit | a:Add | d:Delete | e:Edit | f:Filter | v:Change View | ?:Help "
-        )
+        footer = " q:Quit | a:Add | d:Add dependency | D:Delete | e:Edit | f:Filter | v:Change View | ?:Help "
         stdscr.attron(curses.color_pair(2))
         stdscr.addstr(height - 1, 0, footer + " " * (width - len(footer) - 1))
         stdscr.attroff(curses.color_pair(2))
@@ -65,22 +63,35 @@ class UIComponents:
 
                 task_str = task_id + ". " + description + metadata
 
+                # Determine if task is completed
+                is_completed = task["status"] == "completed"
+
                 if idx == selected_index:
-                    stdscr.attron(
-                        curses.color_pair(3) | curses.A_BOLD
-                    )  # Selection color + bold
+                    if is_completed:
+                        stdscr.attron(curses.color_pair(3) | curses.A_DIM)
+                    else:
+                        stdscr.attron(curses.color_pair(3) | curses.A_BOLD)
                     # Fill entire line width with selection color
                     stdscr.addstr(idx + 2, 0, " " * (list_width))
                     # Draw task info
                     stdscr.addstr(idx + 2, 0, task_str)
-                    stdscr.attroff(curses.color_pair(3) | curses.A_BOLD)
+                    if is_completed:
+                        stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
+                    else:
+                        stdscr.attroff(curses.color_pair(3) | curses.A_BOLD)
                 else:
-                    stdscr.attron(curses.color_pair(4))
+                    if is_completed:
+                        stdscr.attron(curses.color_pair(4) | curses.A_DIM)
+                    else:
+                        stdscr.attron(curses.color_pair(4))
                     stdscr.addstr(idx + 2, 0, task_str)
-                    stdscr.attroff(curses.color_pair(4))
+                    if is_completed:
+                        stdscr.attroff(curses.color_pair(4) | curses.A_DIM)
+                    else:
+                        stdscr.attroff(curses.color_pair(4))
 
     @staticmethod
-    def draw_task_details(stdscr, task, selected_index):
+    def draw_task_details(stdscr, task, selected_index, task_manager):
         if task is None:
             return
 
@@ -111,7 +122,38 @@ class UIComponents:
             f"Priority: {task['priority'] or 'None'}",
             "",
             f"Due: {task['due'] or 'None'}",
+            "",
+            "Depends on:",
         ]
+
+        # Add dependencies if they exist
+        blocked_by = []
+        
+        # Get dependencies from task._data
+        depends = task._data.get('depends', None)
+        if depends and hasattr(depends, '_data'):  # Handle LazyUUIDTaskSet
+            # Get the UUIDs from the LazyUUIDTaskSet
+            dep_uuids = depends._data
+            if dep_uuids:
+                # Find tasks that this task depends on
+                for t in task_manager.tw.tasks:
+                    if str(t._data.get('uuid', '')) in [str(uuid) for uuid in dep_uuids]:
+                        project_info = f" [{t['project']}]" if t['project'] else ""
+                        blocked_by.append(f"  - {t['description']}{project_info}")
+        
+        if blocked_by:
+            details.extend(blocked_by)
+        else:
+            details.append("  None")
+
+        # Debug info
+        details.extend([
+            "",
+            "Debug info:",
+            f"  depends: {depends}",
+            f"  depends._data: {depends._data if hasattr(depends, '_data') else None}",
+            f"  task._data: {task._data}",
+        ])
 
         for idx, detail in enumerate(details):
             if idx + 2 < height - 1:  # Leave space for header and footer
@@ -119,6 +161,8 @@ class UIComponents:
                     detail.startswith("Project:")
                     or detail.startswith("Tags:")
                     or detail == "Description:"
+                    or detail == "Depends on:"
+                    or detail == "Debug info:"
                 ):
                     stdscr.attron(curses.color_pair(5))
                     stdscr.addstr(idx + 2, detail_x + 1, detail[:detail_width])
@@ -317,17 +361,23 @@ class UIComponents:
 
         selected_task = None
         if current_view == "by_project":
-            selected_task = UIComponents.draw_task_list_by_project(stdscr, task_manager, selected_index)
+            selected_task = UIComponents.draw_task_list_by_project(
+                stdscr, task_manager, selected_index
+            )
             if selected_task:
-                UIComponents.draw_task_details(stdscr, selected_task, selected_index)
+                UIComponents.draw_task_details(stdscr, selected_task, selected_index, task_manager)
         elif current_view == "by_tags":
-            selected_task = UIComponents.draw_task_list_by_tag(stdscr, task_manager, selected_index)
+            selected_task = UIComponents.draw_task_list_by_tag(
+                stdscr, task_manager, selected_index
+            )
             if selected_task:
-                UIComponents.draw_task_details(stdscr, selected_task, selected_index)
+                UIComponents.draw_task_details(stdscr, selected_task, selected_index, task_manager)
         else:
             UIComponents.draw_task_list(stdscr, current_tasks, selected_index)
             if selected_index < len(current_tasks):
-                UIComponents.draw_task_details(stdscr, current_tasks[selected_index], selected_index)
+                UIComponents.draw_task_details(
+                    stdscr, current_tasks[selected_index], selected_index, task_manager
+                )
 
     @staticmethod
     def draw_stats(stdscr, task_manager):
