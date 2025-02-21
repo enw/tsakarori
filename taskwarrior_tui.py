@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import curses
 import sys
-from tasklib import TaskWarrior
+from tasklib import TaskWarrior, Task
 from datetime import datetime
 import taskwarrior_tui_config
 import curses.textpad
@@ -136,17 +136,21 @@ class TaskWarriorTUI:
         description = stdscr.getstr().decode('utf-8')
         
         if description:
-            task = self.tw.tasks.add(description)
-            stdscr.addstr(height-2, 0, "Enter project (optional): ")
+            # Create a new Task object instead of using add()
+            task = Task(self.tw)
+            task['description'] = description
+            
+            stdscr.addstr(height-2, 0, "Enter project (optional): " + " " * (width - 25))
             project = stdscr.getstr().decode('utf-8')
             if project:
                 task['project'] = project
 
-            stdscr.addstr(height-2, 0, "Enter tags (comma-separated, optional): ")
+            stdscr.addstr(height-2, 0, "Enter tags (comma-separated, optional): " + " " * (width - 35))
             tags = stdscr.getstr().decode('utf-8')
             if tags:
                 task['tags'] = [t.strip() for t in tags.split(',')]
 
+            # Save the new task
             task.save()
             self.update_task_lists()
         
