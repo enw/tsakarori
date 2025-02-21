@@ -20,7 +20,10 @@ class TaskManager:
             tasks = [t for t in tasks if self.filter_tag in (t["tags"] or [])]
 
         self.current_tasks = list(tasks)
-        self.current_tasks.sort(key=lambda x: x["urgency"] or 0, reverse=True)
+        self.current_tasks.sort(
+            key=lambda x: float(x["urgency"] or 0.0), 
+            reverse=True
+        )
         self.projects = list(
             set(task["project"] for task in self.current_tasks if task["project"])
         )
