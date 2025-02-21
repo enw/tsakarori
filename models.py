@@ -99,3 +99,30 @@ class TaskManager:
         no_project_tasks.sort(key=lambda x: float(x["urgency"] or 0.0), reverse=True)
         
         return sorted_projects, by_project, no_project_tasks 
+
+    def get_tasks_by_tag(self):
+        """Return tasks organized by tag"""
+        by_tag = {}
+        no_tag_tasks = []
+        
+        for task in self.current_tasks:
+            tags = task["tags"] or []
+            if tags:
+                for tag in tags:
+                    if tag not in by_tag:
+                        by_tag[tag] = []
+                    by_tag[tag].append(task)
+            else:
+                no_tag_tasks.append(task)
+        
+        # Sort tags alphabetically
+        sorted_tags = sorted(by_tag.keys())
+        
+        # Sort tasks within each tag by urgency
+        for tag in by_tag:
+            by_tag[tag].sort(key=lambda x: float(x["urgency"] or 0.0), reverse=True)
+        
+        # Sort no-tag tasks by urgency
+        no_tag_tasks.sort(key=lambda x: float(x["urgency"] or 0.0), reverse=True)
+        
+        return sorted_tags, by_tag, no_tag_tasks 
