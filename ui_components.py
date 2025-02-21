@@ -24,20 +24,16 @@ class UIComponents:
     def draw_task_list(stdscr, current_tasks, selected_index):
         height, width = stdscr.getmaxyx()
         list_width = width // 2
-        start_y = 1
-        max_tasks = height - 3
+        start_y = 0
+        max_tasks = height - 2
 
         # Draw vertical separator
         for y in range(1, height - 1):
             stdscr.addstr(y, list_width, "│")
 
-        # Sort tasks by urgency (highest to lowest)
-        sorted_tasks = sorted(
-            current_tasks, key=lambda x: float(x["urgency"] or 0), reverse=True
-        )
-
+        # Tasks are already sorted by urgency in TaskManager
         # Draw task list
-        for idx, task in enumerate(sorted_tasks):
+        for idx, task in enumerate(current_tasks):
             if idx >= start_y and idx < start_y + max_tasks:
                 # Format task info
                 desc_width = 30
@@ -62,13 +58,13 @@ class UIComponents:
                         curses.color_pair(3) | curses.A_BOLD
                     )  # Selection color + bold
                     # Fill entire line width with selection color
-                    stdscr.addstr(idx + 1, 0, " " * (list_width))
+                    stdscr.addstr(idx + 2, 0, " " * (list_width))
                     # Draw task info
-                    stdscr.addstr(idx + 1, 0, task_str)
+                    stdscr.addstr(idx + 2, 0, task_str)
                     stdscr.attroff(curses.color_pair(3) | curses.A_BOLD)
                 else:
                     stdscr.attron(curses.color_pair(4))
-                    stdscr.addstr(idx + 1, 0, task_str)
+                    stdscr.addstr(idx + 2, 0, task_str)
                     stdscr.attroff(curses.color_pair(4))
 
     @staticmethod
