@@ -249,9 +249,23 @@ class TsakaroriTUI:
     def change_color_scheme(self, stdscr):
         schemes = list(self.config.config["color_schemes"].keys())
         current_idx = schemes.index(self.config.config["color_scheme"])
-        self.config.config["color_scheme"] = schemes[(current_idx + 1) % len(schemes)]
+        new_scheme = schemes[(current_idx + 1) % len(schemes)]
+        self.config.config["color_scheme"] = new_scheme
         self.config.save_config()
         self.setup_colors()
+
+        # Force full UI refresh
+        stdscr.clear()
+        self.draw_header(stdscr)
+        self.draw_footer(stdscr)
+        stdscr.refresh()
+
+        # Show temporary status message
+        height, width = stdscr.getmaxyx()
+        status_msg = f"Color scheme: {new_scheme}"
+        stdscr.addstr(height // 2, (width - len(status_msg)) // 2, status_msg, curses.A_REVERSE)
+        stdscr.refresh()
+        curses.napms(500)  # Show message for 500ms
 
     def filter_by_project(self, stdscr):
         if not self.projects:
