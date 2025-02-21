@@ -42,22 +42,23 @@ class TsakaroriTUI:
     def draw_header(self, stdscr):
         height, width = stdscr.getmaxyx()
         header = f" Tsakarori | View: {self.current_view} | Press '?' for help "
-        stdscr.addstr(0, 0, header + " " * (width - len(header) - 1), curses.A_REVERSE)
+        stdscr.attron(curses.color_pair(1))  # Use header colors
+        stdscr.addstr(0, 0, header + " " * (width - len(header) - 1))
+        stdscr.attroff(curses.color_pair(1))
 
     def draw_footer(self, stdscr):
         height, width = stdscr.getmaxyx()
-        footer = (
-            " q:Quit | a:Add | d:Delete | e:Edit | f:Filter | v:Change View | ?:Help "
-        )
-        stdscr.addstr(
-            height - 1, 0, footer + " " * (width - len(footer) - 1), curses.A_REVERSE
-        )
+        footer = " q:Quit | a:Add | d:Delete | e:Edit | f:Filter | v:Change View | ?:Help "
+        stdscr.attron(curses.color_pair(2))  # Use footer colors
+        stdscr.addstr(height - 1, 0, footer + " " * (width - len(footer) - 1))
+        stdscr.attroff(curses.color_pair(2))
 
     def draw_tasks(self, stdscr):
         height, width = stdscr.getmaxyx()
         start_y = 1
         max_tasks = height - 3
 
+        stdscr.attron(curses.color_pair(4))  # Use normal colors as default
         for idx, task in enumerate(self.current_tasks):
             if idx >= start_y and idx < start_y + max_tasks:
                 task_str = f"{task['id']:4} {task['description'][:40]:40} "
@@ -67,9 +68,12 @@ class TsakaroriTUI:
                 task_str += f"Tags:[{tags[:15]:15}]"
 
                 if idx == self.selected_index:
-                    stdscr.addstr(idx + 1, 0, task_str[: width - 1], curses.A_REVERSE)
+                    stdscr.attron(curses.color_pair(3))  # Selected color
+                    stdscr.addstr(idx + 1, 0, task_str[: width - 1])
+                    stdscr.attroff(curses.color_pair(3))
                 else:
                     stdscr.addstr(idx + 1, 0, task_str[: width - 1])
+        stdscr.attroff(curses.color_pair(4))
 
     def draw_stats(self, stdscr):
         height, width = stdscr.getmaxyx()
@@ -89,9 +93,11 @@ class TsakaroriTUI:
             *[f"  - {t}" for t in self.tags],
         ]
 
+        stdscr.attron(curses.color_pair(4))  # Use normal colors
         for idx, stat in enumerate(stats):
             if idx < height - 2:
                 stdscr.addstr(idx + 1, 0, stat[: width - 1])
+        stdscr.attroff(curses.color_pair(4))
 
     def show_help(self, stdscr):
         help_text = [
@@ -130,7 +136,8 @@ class TsakaroriTUI:
 
         height, width = stdscr.getmaxyx()
         help_win = curses.newwin(height - 2, width - 4, 1, 2)
-        help_win.attron(curses.color_pair(4))
+        help_win.bkgd(' ', curses.color_pair(4))
+        help_win.clear()
 
         for idx, line in enumerate(help_text):
             if idx < height - 3:
@@ -252,11 +259,18 @@ class TsakaroriTUI:
         new_scheme = schemes[(current_idx + 1) % len(schemes)]
         self.config.config["color_scheme"] = new_scheme
         self.config.save_config()
+        
+        # Reset and reinitialize colors
         self.setup_colors()
-
-        # Force full UI refresh
+        
+        # Force complete screen redraw
         stdscr.clear()
+        stdscr.refresh()
         self.draw_header(stdscr)
+        if self.current_view == "stats":
+            self.draw_stats(stdscr)
+        else:
+            self.draw_tasks(stdscr)
         self.draw_footer(stdscr)
         stdscr.refresh()
 
@@ -344,6 +358,10 @@ class TsakaroriTUI:
         curses.start_color()
         curses.use_default_colors()
 
+        # Reset all color pairs first
+        for i in range(1, 6):
+            curses.init_pair(i, -1, -1)
+
         colors = self.config.get_color_pairs()
         curses.init_pair(1, colors["header"][0], colors["header"][1])
         curses.init_pair(2, colors["footer"][0], colors["footer"][1])
@@ -357,7 +375,11 @@ class TsakaroriTUI:
         stdscr.clear()
 
         while True:
+            # Fill entire screen with normal background color
+            height, width = stdscr.getmaxyx()
+            stdscr.bkgd(' ', curses.color_pair(4))
             stdscr.clear()
+
             self.draw_header(stdscr)
 
             if self.current_view == "stats":
