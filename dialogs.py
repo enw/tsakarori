@@ -1,6 +1,7 @@
 import curses
 import curses.textpad
 from datetime import datetime
+from task_service import TaskService
 
 
 class Dialogs:
@@ -363,3 +364,25 @@ class Dialogs:
                 selected = (selected - 1) % len(available_tasks)
             elif key == curses.KEY_DOWN or key == ord("j"):
                 selected = (selected + 1) % len(available_tasks)
+
+
+class TaskDialog:
+    def __init__(self):
+        self.task_service = TaskService()
+    
+    def validate_input(self, description: str) -> bool:
+        """Validate task input"""
+        try:
+            # Use service validation
+            self.task_service.add_task(description)
+            return True
+        except ValueError:
+            return False
+    
+    def validate_due_date(self, date_str: str) -> bool:
+        """Validate due date format"""
+        try:
+            self.task_service.add_task("test", due=date_str)
+            return True
+        except ValueError:
+            return False

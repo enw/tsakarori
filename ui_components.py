@@ -1,4 +1,5 @@
 import curses
+from task_service import TaskService
 
 
 class UIComponents:
@@ -408,3 +409,21 @@ class UIComponents:
                 else:
                     stdscr.addstr(idx + 1, 0, stat[: width - 1])
         stdscr.attroff(curses.color_pair(4))
+
+
+class TaskList:
+    def __init__(self):
+        self.task_service = TaskService()
+        
+    def add_task(self, task_data: dict):
+        return self.task_service.add_task(**task_data)
+        
+    def get_filtered_tasks(self, project=None, tags=None):
+        if project:
+            return self.task_service.get_tasks_by_project(project)
+        if tags:
+            return self.task_service.get_tasks_by_tags(tags)
+        return self.task_service.tasks
+        
+    def get_sorted_tasks(self, sort_by):
+        return self.task_service.sort_tasks(self.task_service.tasks, sort_by)
