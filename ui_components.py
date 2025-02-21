@@ -3,9 +3,21 @@ import curses
 
 class UIComponents:
     @staticmethod
-    def draw_header(stdscr, current_view):
+    def draw_header(stdscr, current_view, task_manager):
         height, width = stdscr.getmaxyx()
-        header = f" Tsakarori | View: {current_view} | Press '?' for help "
+        
+        # Build filter info
+        filters = []
+        if task_manager.filter_project:
+            filters.append(f"Project:{task_manager.filter_project}")
+        if task_manager.filter_tag:
+            filters.append(f"Tag:{task_manager.filter_tag}")
+        if task_manager.filter_text:
+            filters.append(f"Text:{task_manager.filter_text}")
+        
+        filter_str = " | Filters: " + ", ".join(filters) if filters else ""
+        header = f" Tsakarori | View: {current_view}{filter_str} | Press '?' for help "
+        
         stdscr.attron(curses.color_pair(1))
         stdscr.addstr(0, 0, header + " " * (width - len(header) - 1))
         stdscr.attroff(curses.color_pair(1))

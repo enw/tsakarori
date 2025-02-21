@@ -60,7 +60,7 @@ class TsakaroriTUI:
             stdscr.bkgd(" ", curses.color_pair(4))
             stdscr.clear()
 
-            UIComponents.draw_header(stdscr, self.current_view)
+            UIComponents.draw_header(stdscr, self.current_view, self.task_manager)
 
             if self.current_view == "stats":
                 UIComponents.draw_stats(stdscr, self.task_manager)
@@ -115,10 +115,14 @@ class TsakaroriTUI:
                 if tag is not None:
                     self.task_manager.filter_tag = tag
                     self.task_manager.update_task_lists()
+            elif key == ord("f"):
+                filter_text = Dialogs.filter_tasks(stdscr)
+                if filter_text is not None:
+                    self.task_manager.set_filter(filter_text)
+                    self.selected_index = 0  # Reset selection
             elif key == ord("c"):
-                self.task_manager.filter_project = None
-                self.task_manager.filter_tag = None
-                self.task_manager.update_task_lists()
+                self.task_manager.clear_filters()
+                self.selected_index = 0  # Reset selection
 
 def main():
     app = TsakaroriTUI()

@@ -249,4 +249,45 @@ class Dialogs:
             elif key == curses.KEY_UP:
                 selected = (selected - 1) % len(task_manager.tags)
             elif key == curses.KEY_DOWN:
-                selected = (selected + 1) % len(task_manager.tags) 
+                selected = (selected + 1) % len(task_manager.tags)
+
+    @staticmethod
+    def filter_tasks(stdscr):
+        height, width = stdscr.getmaxyx()
+        
+        # Create filter window
+        filter_win = curses.newwin(5, width - 4, height // 2 - 2, 2)
+        filter_win.box()
+        filter_win.addstr(0, 2, "Filter Tasks")
+        filter_win.addstr(1, 2, "Enter text to filter by description, project, or tags")
+        filter_win.addstr(2, 2, "Press Ctrl-G or Enter to apply, ESC to cancel")
+        
+        # Create text input box
+        text_win = curses.newwin(1, width - 8, height // 2 + 1, 4)
+        text_box = curses.textpad.Textbox(text_win, insert_mode=True)
+        
+        # Show cursor for text input
+        curses.curs_set(1)
+        
+        # Get filter text
+        filter_win.refresh()
+        text_win.refresh()
+        
+        try:
+            # Handle ESC key
+            while True:
+                c = stdscr.getch()
+                if c == 27:  # ESC
+                    curses.curs_set(0)
+                    return None
+                if c == ord('\n') or c == ord('\r'):
+                    break
+                text_box.do_command(c)
+                text_win.refresh()
+            
+            filter_text = text_box.gather().strip()
+            curses.curs_set(0)
+            return filter_text if filter_text else None
+            
+        finally:
+            curses.curs_set(0) 

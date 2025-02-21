@@ -9,27 +9,61 @@ class TaskManager:
         self.tags = []
         self.filter_project = None
         self.filter_tag = None
+        self.filter_text = None
         self.update_task_lists()
 
     def update_task_lists(self):
+        """Update task lists with current filters"""
+        # Start with all pending tasks
         tasks = self.tw.tasks.pending()
-
+        original_count = len(tasks)
+        
+        # Apply filters in sequence
         if self.filter_project:
             tasks = [t for t in tasks if t["project"] == self.filter_project]
+            
         if self.filter_tag:
             tasks = [t for t in tasks if self.filter_tag in (t["tags"] or [])]
+            
+        if self.filter_text and self.filter_text.strip():
+            filtered = []
+            search_text = self.filter_text.lower().strip()
+            
+            for task in tasks:
+                # Check description
+                description = task["description"].lower() if task["description"] else ""
+                if search_text in description:
+                    filtered.append(task)
+                    continue
+                    
+                # Check project
+                project = task["project"].lower() if task["project"] else ""
+                if search_text in project:
+                    filtered.append(task)
+                    continue
+                    
+                # Check tags
+                tags = [t.lower() for t in (task["tags"] or [])]
+                if any(search_text in tag for tag in tags):
+                    filtered.append(task)
+                    continue
+            
+            tasks = filtered
 
+        # Update the task lists
         self.current_tasks = list(tasks)
         self.current_tasks.sort(
             key=lambda x: float(x["urgency"] or 0.0), 
             reverse=True
         )
-        self.projects = list(
-            set(task["project"] for task in self.current_tasks if task["project"])
-        )
-        self.tags = list(
-            set(tag for task in self.current_tasks for tag in (task["tags"] or []))
-        )
+        
+        # Update available projects and tags based on filtered tasks
+        self.projects = sorted(set(
+            task["project"] for task in self.current_tasks if task["project"]
+        ))
+        self.tags = sorted(set(
+            tag for task in self.current_tasks for tag in (task["tags"] or [])
+        ))
 
     def add_task(self, description, project=None, tags=None):
         task = Task(self.tw)
@@ -126,3 +160,29 @@ class TaskManager:
         no_tag_tasks.sort(key=lambda x: float(x["urgency"] or 0.0), reverse=True)
         
         return sorted_tags, by_tag, no_tag_tasks 
+
+    def set_filter(self, filter_text):
+        """Set text filter and update lists"""
+        if filter_text and filter_text.strip():
+            self.filter_text = filter_text.strip()
+        else:
+            self.filter_text = None
+        self.update_task_lists()
+
+    def clear_filters(self):
+        """Clear all filters"""
+        self.filter_project = None
+        self.filter_tag = None
+        self.filter_text = None
+        self.update_task_lists()
+
+    def debug_filters(self):
+        """Return current filter state"""
+        return {
+            'project_filter': self.filter_project,
+            'tag_filter': self.filter_tag,
+            'text_filter': self.filter_text,
+            'task_count': len(self.current_tasks),
+            'projects': self.projects,
+            'tags': self.tags
+        } 
