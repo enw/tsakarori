@@ -5,6 +5,7 @@ from ui_components import UIComponents
 from dialogs import Dialogs
 import tsakarori_config
 
+
 class TsakaroriTUI:
     def __init__(self):
         self.task_manager = TaskManager()
@@ -66,11 +67,11 @@ class TsakaroriTUI:
                 UIComponents.draw_stats(stdscr, self.task_manager)
             else:
                 UIComponents.draw_tasks(
-                    stdscr, 
-                    self.task_manager.current_tasks, 
+                    stdscr,
+                    self.task_manager.current_tasks,
                     self.selected_index,
                     self.current_view,
-                    self.task_manager
+                    self.task_manager,
                 )
 
             UIComponents.draw_footer(stdscr)
@@ -81,8 +82,7 @@ class TsakaroriTUI:
                 break
             elif key == ord("j") or key == curses.KEY_DOWN:
                 self.selected_index = min(
-                    self.selected_index + 1, 
-                    len(self.task_manager.current_tasks) - 1
+                    self.selected_index + 1, len(self.task_manager.current_tasks) - 1
                 )
             elif key == ord("k") or key == curses.KEY_UP:
                 self.selected_index = max(self.selected_index - 1, 0)
@@ -95,16 +95,29 @@ class TsakaroriTUI:
                 Dialogs.edit_task(stdscr, self.task_manager, self.selected_index)
             elif key == ord("?"):
                 Dialogs.show_help(stdscr, self.config)
-            elif key == ord("d") and self.task_manager.current_tasks:
+            elif key == ord("D") and self.task_manager.current_tasks:
                 self.task_manager.delete_task(self.selected_index)
                 self.selected_index = min(
-                    self.selected_index, 
-                    len(self.task_manager.current_tasks) - 1
+                    self.selected_index, len(self.task_manager.current_tasks) - 1
                 )
+            elif key == ord("d") and self.task_manager.current_tasks:
+                # Handle dependency creation
+                depends_on_task = Dialogs.select_dependency(
+                    stdscr, self.task_manager, self.selected_index
+                )
+                if depends_on_task:
+                    self.task_manager.set_dependency(
+                        self.selected_index, depends_on_task
+                    )
             elif key == ord(" ") and self.task_manager.current_tasks:
                 self.task_manager.complete_task(self.selected_index)
             elif key == ord("s"):
                 self.change_color_scheme(stdscr)
+            elif key == ord("T"):
+                self.task_manager.toggle_completed()
+                self.selected_index = min(
+                    self.selected_index, len(self.task_manager.current_tasks) - 1
+                )
             elif key == ord("p"):
                 project = Dialogs.filter_by_project(stdscr, self.task_manager)
                 if project is not None:
@@ -124,9 +137,11 @@ class TsakaroriTUI:
                 self.task_manager.clear_filters()
                 self.selected_index = 0  # Reset selection
 
+
 def main():
     app = TsakaroriTUI()
     curses.wrapper(app.main)
+
 
 if __name__ == "__main__":
     main()

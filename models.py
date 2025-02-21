@@ -11,13 +11,16 @@ class TaskManager:
         self.filter_project = None
         self.filter_tag = None
         self.filter_text = None
+        self.show_completed = False
         self.update_task_lists()
 
     def update_task_lists(self):
         """Update task lists with current filters"""
-        # Start with all pending tasks
-        tasks = self.tw.tasks.pending()
-        original_count = len(tasks)
+        # Get tasks based on completion status
+        if self.show_completed:
+            tasks = list(self.tw.tasks.pending()) + list(self.tw.tasks.completed())
+        else:
+            tasks = self.tw.tasks.pending()
 
         # Apply filters in sequence
         if self.filter_project:
@@ -53,7 +56,9 @@ class TaskManager:
 
         # Update the task lists
         self.current_tasks = list(tasks)
-        self.current_tasks.sort(key=lambda x: float(x["urgency"] or 0.0), reverse=True)
+        self.current_tasks.sort(
+            key=lambda x: (x["status"] == "completed", -float(x["urgency"] or 0.0))
+        )
 
         # Update available projects and tags based on filtered tasks
         self.projects = sorted(
@@ -193,3 +198,31 @@ class TaskManager:
             "projects": self.projects,
             "tags": self.tags,
         }
+
+    def set_dependency(self, task_idx, depends_on_task):
+        """Set a task dependency where task_idx depends on depends_on_task"""
+        if not self.current_tasks or task_idx >= len(self.current_tasks):
+            return False
+
+        task = self.current_tasks[task_idx]
+
+        # Initialize dependencies as a set
+        if "depends" not in task:
+            task["depends"] = set()
+        elif not isinstance(task["depends"], set):
+            # Convert existing dependencies to a set if they're not already
+            current_deps = task["depends"]
+            if not isinstance(current_deps, list):
+                current_deps = [current_deps]
+            task["depends"] = set(current_deps)
+
+        # Add the new dependency
+        task["depends"].add(depends_on_task)
+        task.save()
+        self.update_task_lists()
+        return True
+
+    def toggle_completed(self):
+        """Toggle showing/hiding completed tasks"""
+        self.show_completed = not self.show_completed
+        self.update_task_lists()
