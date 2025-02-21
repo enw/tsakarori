@@ -115,15 +115,111 @@ class UIComponents:
                     stdscr.addstr(idx + 2, detail_x + 1, detail[:detail_width])
 
     @staticmethod
-    def draw_tasks(stdscr, current_tasks, selected_index):
+    def draw_task_list_by_project(stdscr, task_manager, selected_index):
+        height, width = stdscr.getmaxyx()
+        list_width = width // 2
+
+        # Draw vertical separator
+        for y in range(1, height - 1):
+            stdscr.addstr(y, list_width, "│")
+
+        # Get tasks organized by project
+        projects, by_project, no_project_tasks = task_manager.get_tasks_by_project()
+
+        current_y = 2  # Start below header
+        current_index = 0
+        selected_task = None  # Track the selected task
+
+        # Draw projects and their tasks
+        for project in projects:
+            # Draw project header
+            stdscr.attron(curses.color_pair(5) | curses.A_BOLD)
+            stdscr.addstr(current_y, 0, f"Project: {project}")
+            stdscr.attroff(curses.color_pair(5) | curses.A_BOLD)
+            current_y += 1
+
+            # Draw tasks for this project
+            for task in by_project[project]:
+                if current_y < height - 1:  # Leave space for footer
+                    desc_width = 30
+                    task_id = f"{task['id']:4}"
+                    description = f"{task['description'][:desc_width]:<{desc_width}}"
+                    urgency = f"U:{float(task['urgency'] or 0):4.1f}"
+                    tags = ",".join(task["tags"] or [])
+                    metadata = f" ({urgency}, [{tags}])"
+
+                    available_width = list_width - len(task_id) - len(description) - 2
+                    if len(metadata) > available_width:
+                        metadata = metadata[: available_width - 3] + "...)"
+
+                    task_str = task_id + ". " + description + metadata
+
+                    if current_index == selected_index:
+                        selected_task = task  # Store the selected task
+                        stdscr.attron(curses.color_pair(3) | curses.A_BOLD)
+                        stdscr.addstr(current_y, 0, " " * (list_width))
+                        stdscr.addstr(current_y, 0, task_str)
+                        stdscr.attroff(curses.color_pair(3) | curses.A_BOLD)
+                    else:
+                        stdscr.attron(curses.color_pair(4))
+                        stdscr.addstr(current_y, 0, task_str)
+                        stdscr.attroff(curses.color_pair(4))
+
+                current_y += 1
+                current_index += 1
+
+        # Draw tasks with no project
+        if no_project_tasks and current_y < height - 1:
+            stdscr.attron(curses.color_pair(5) | curses.A_BOLD)
+            stdscr.addstr(current_y, 0, "No Project")
+            stdscr.attroff(curses.color_pair(5) | curses.A_BOLD)
+            current_y += 1
+
+            for task in no_project_tasks:
+                if current_y < height - 1:
+                    desc_width = 30
+                    task_id = f"{task['id']:4}"
+                    description = f"{task['description'][:desc_width]:<{desc_width}}"
+                    urgency = f"U:{float(task['urgency'] or 0):4.1f}"
+                    tags = ",".join(task["tags"] or [])
+                    metadata = f" ({urgency}, [{tags}])"
+
+                    available_width = list_width - len(task_id) - len(description) - 2
+                    if len(metadata) > available_width:
+                        metadata = metadata[: available_width - 3] + "...)"
+
+                    task_str = task_id + ". " + description + metadata
+
+                    if current_index == selected_index:
+                        selected_task = task  # Store the selected task
+                        stdscr.attron(curses.color_pair(3) | curses.A_BOLD)
+                        stdscr.addstr(current_y, 0, " " * (list_width))
+                        stdscr.addstr(current_y, 0, task_str)
+                        stdscr.attroff(curses.color_pair(3) | curses.A_BOLD)
+                    else:
+                        stdscr.attron(curses.color_pair(4))
+                        stdscr.addstr(current_y, 0, task_str)
+                        stdscr.attroff(curses.color_pair(4))
+
+                current_y += 1
+                current_index += 1
+
+        return selected_task
+
+    @staticmethod
+    def draw_tasks(stdscr, current_tasks, selected_index, current_view, task_manager):
         if not current_tasks:
             return
 
-        UIComponents.draw_task_list(stdscr, current_tasks, selected_index)
-        if selected_index < len(current_tasks):
-            UIComponents.draw_task_details(
-                stdscr, current_tasks[selected_index], selected_index
-            )
+        selected_task = None
+        if current_view == "by_project":
+            selected_task = UIComponents.draw_task_list_by_project(stdscr, task_manager, selected_index)
+            if selected_task:
+                UIComponents.draw_task_details(stdscr, selected_task, selected_index)
+        else:
+            UIComponents.draw_task_list(stdscr, current_tasks, selected_index)
+            if selected_index < len(current_tasks):
+                UIComponents.draw_task_details(stdscr, current_tasks[selected_index], selected_index)
 
     @staticmethod
     def draw_stats(stdscr, task_manager):

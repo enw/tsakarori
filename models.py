@@ -72,4 +72,30 @@ class TaskManager:
     def complete_task(self, task_idx):
         if task_idx < len(self.current_tasks):
             self.current_tasks[task_idx].done()
-            self.update_task_lists() 
+            self.update_task_lists()
+
+    def get_tasks_by_project(self):
+        """Return tasks organized by project"""
+        by_project = {}
+        no_project_tasks = []
+        
+        for task in self.current_tasks:
+            project = task["project"]
+            if project:
+                if project not in by_project:
+                    by_project[project] = []
+                by_project[project].append(task)
+            else:
+                no_project_tasks.append(task)
+        
+        # Sort projects alphabetically
+        sorted_projects = sorted(by_project.keys())
+        
+        # Sort tasks within each project by urgency
+        for project in by_project:
+            by_project[project].sort(key=lambda x: float(x["urgency"] or 0.0), reverse=True)
+        
+        # Sort no-project tasks by urgency
+        no_project_tasks.sort(key=lambda x: float(x["urgency"] or 0.0), reverse=True)
+        
+        return sorted_projects, by_project, no_project_tasks 

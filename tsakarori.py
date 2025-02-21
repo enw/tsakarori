@@ -65,8 +65,13 @@ class TsakaroriTUI:
             if self.current_view == "stats":
                 UIComponents.draw_stats(stdscr, self.task_manager)
             else:
-                UIComponents.draw_tasks(stdscr, self.task_manager.current_tasks, 
-                                      self.selected_index)
+                UIComponents.draw_tasks(
+                    stdscr, 
+                    self.task_manager.current_tasks, 
+                    self.selected_index,
+                    self.current_view,
+                    self.task_manager
+                )
 
             UIComponents.draw_footer(stdscr)
             stdscr.refresh()
