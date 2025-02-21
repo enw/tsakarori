@@ -83,7 +83,7 @@ class Dialogs:
         height, width = stdscr.getmaxyx()
 
         edit_win = curses.newwin(10, width - 4, height // 2 - 5, 2)
-        edit_win.box()
+        edit_win.keypad(True)  # Enable keypad for arrow keys
 
         fields = [
             ("Description", task["description"]),
@@ -97,22 +97,45 @@ class Dialogs:
         while True:
             edit_win.clear()
             edit_win.box()
-            edit_win.addstr(0, 2, "Edit Task (Enter to confirm, ESC to cancel)")
+            edit_win.addstr(0, 2, "Edit Task (Enter to edit, d to delete value, ESC to cancel)")
 
+            # Draw all fields, highlighting the current one
             for idx, (label, value) in enumerate(fields):
                 if idx == current_field:
-                    edit_win.attron(curses.color_pair(3))
+                    edit_win.attron(curses.color_pair(3) | curses.A_BOLD)
                 edit_win.addstr(idx + 1, 2, f"{label}: {value}")
                 if idx == current_field:
-                    edit_win.attroff(curses.color_pair(3))
+                    edit_win.attroff(curses.color_pair(3) | curses.A_BOLD)
 
             edit_win.refresh()
             key = edit_win.getch()
 
             if key == 27:  # ESC
                 return
-            elif key == ord("\n"):
+            elif key == ord("d"):  # Delete field value
+                field_name = fields[current_field][0]
+                fields[current_field] = (field_name, "")
+                
+                # Update task with empty value
+                if field_name == "Description":
+                    # Don't allow empty description
+                    continue
+                elif field_name == "Project":
+                    task_manager.edit_task(task_idx, project=None)
+                elif field_name == "Tags (comma-separated)":
+                    task_manager.edit_task(task_idx, tags=[])
+                elif field_name == "Priority (H,M,L)":
+                    task_manager.edit_task(task_idx, priority=None)
+                elif field_name == "Due Date (YYYY-MM-DD)":
+                    task_manager.edit_task(task_idx, due_date=None)
+            elif key == ord("\n"):  # Enter
+                # Clear the line for input
                 edit_win.move(current_field + 1, len(fields[current_field][0]) + 4)
+                edit_win.clrtoeol()
+                edit_win.box()  # Restore the box
+                edit_win.move(current_field + 1, len(fields[current_field][0]) + 4)
+                
+                # Get input
                 curses.echo()
                 value = edit_win.getstr().decode("utf-8")
                 curses.noecho()
@@ -130,16 +153,31 @@ class Dialogs:
                         tags = [t.strip() for t in value.split(",") if t.strip()]
                         task_manager.edit_task(task_idx, tags=tags)
                     elif field_name == "Priority (H,M,L)":
-                        task_manager.edit_task(task_idx, priority=value)
+                        if value.upper() in ["H", "M", "L"]:
+                            task_manager.edit_task(task_idx, priority=value.upper())
                     elif field_name == "Due Date (YYYY-MM-DD)":
-                        task_manager.edit_task(task_idx, due_date=value)
-
-                current_field = (current_field + 1) % len(fields)
+                        try:
+                            datetime.strptime(value, "%Y-%m-%d")
+                            task_manager.edit_task(task_idx, due_date=value)
+                        except ValueError:
+                            # Show error message
+                            edit_win.addstr(
+                                current_field + 1, 
+                                len(fields[current_field][0]) + len(value) + 5,
+                                " (Invalid date format)",
+                                curses.color_pair(5) | curses.A_BOLD
+                            )
+                            edit_win.refresh()
+                            curses.napms(1000)  # Show error for 1 second
 
             elif key == curses.KEY_UP:
                 current_field = (current_field - 1) % len(fields)
             elif key == curses.KEY_DOWN:
                 current_field = (current_field + 1) % len(fields)
+            elif key == ord("j"):  # Also allow j/k navigation
+                current_field = (current_field + 1) % len(fields)
+            elif key == ord("k"):
+                current_field = (current_field - 1) % len(fields)
 
     @staticmethod
     def filter_by_project(stdscr, task_manager):
