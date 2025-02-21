@@ -1,6 +1,7 @@
 from tasklib import TaskWarrior, Task
 from datetime import datetime
 
+
 class TaskManager:
     def __init__(self):
         self.tw = TaskWarrior()
@@ -17,53 +18,50 @@ class TaskManager:
         # Start with all pending tasks
         tasks = self.tw.tasks.pending()
         original_count = len(tasks)
-        
+
         # Apply filters in sequence
         if self.filter_project:
             tasks = [t for t in tasks if t["project"] == self.filter_project]
-            
+
         if self.filter_tag:
             tasks = [t for t in tasks if self.filter_tag in (t["tags"] or [])]
-            
+
         if self.filter_text and self.filter_text.strip():
             filtered = []
             search_text = self.filter_text.lower().strip()
-            
+
             for task in tasks:
                 # Check description
                 description = task["description"].lower() if task["description"] else ""
                 if search_text in description:
                     filtered.append(task)
                     continue
-                    
+
                 # Check project
                 project = task["project"].lower() if task["project"] else ""
                 if search_text in project:
                     filtered.append(task)
                     continue
-                    
+
                 # Check tags
                 tags = [t.lower() for t in (task["tags"] or [])]
                 if any(search_text in tag for tag in tags):
                     filtered.append(task)
                     continue
-            
+
             tasks = filtered
 
         # Update the task lists
         self.current_tasks = list(tasks)
-        self.current_tasks.sort(
-            key=lambda x: float(x["urgency"] or 0.0), 
-            reverse=True
-        )
-        
+        self.current_tasks.sort(key=lambda x: float(x["urgency"] or 0.0), reverse=True)
+
         # Update available projects and tags based on filtered tasks
-        self.projects = sorted(set(
-            task["project"] for task in self.current_tasks if task["project"]
-        ))
-        self.tags = sorted(set(
-            tag for task in self.current_tasks for tag in (task["tags"] or [])
-        ))
+        self.projects = sorted(
+            set(task["project"] for task in self.current_tasks if task["project"])
+        )
+        self.tags = sorted(
+            set(tag for task in self.current_tasks for tag in (task["tags"] or []))
+        )
 
     def add_task(self, description, project=None, tags=None):
         task = Task(self.tw)
@@ -75,8 +73,15 @@ class TaskManager:
         task.save()
         self.update_task_lists()
 
-    def edit_task(self, task_idx, description=None, project=None, tags=None, 
-                  priority=None, due_date=None):
+    def edit_task(
+        self,
+        task_idx,
+        description=None,
+        project=None,
+        tags=None,
+        priority=None,
+        due_date=None,
+    ):
         if not self.current_tasks or task_idx >= len(self.current_tasks):
             return
 
@@ -94,7 +99,7 @@ class TaskManager:
                 task["due"] = datetime.strptime(due_date, "%Y-%m-%d")
             except ValueError:
                 pass
-        
+
         task.save()
         self.update_task_lists()
 
@@ -112,7 +117,7 @@ class TaskManager:
         """Return tasks organized by project"""
         by_project = {}
         no_project_tasks = []
-        
+
         for task in self.current_tasks:
             project = task["project"]
             if project:
@@ -121,24 +126,26 @@ class TaskManager:
                 by_project[project].append(task)
             else:
                 no_project_tasks.append(task)
-        
+
         # Sort projects alphabetically
         sorted_projects = sorted(by_project.keys())
-        
+
         # Sort tasks within each project by urgency
         for project in by_project:
-            by_project[project].sort(key=lambda x: float(x["urgency"] or 0.0), reverse=True)
-        
+            by_project[project].sort(
+                key=lambda x: float(x["urgency"] or 0.0), reverse=True
+            )
+
         # Sort no-project tasks by urgency
         no_project_tasks.sort(key=lambda x: float(x["urgency"] or 0.0), reverse=True)
-        
-        return sorted_projects, by_project, no_project_tasks 
+
+        return sorted_projects, by_project, no_project_tasks
 
     def get_tasks_by_tag(self):
         """Return tasks organized by tag"""
         by_tag = {}
         no_tag_tasks = []
-        
+
         for task in self.current_tasks:
             tags = task["tags"] or []
             if tags:
@@ -148,18 +155,18 @@ class TaskManager:
                     by_tag[tag].append(task)
             else:
                 no_tag_tasks.append(task)
-        
+
         # Sort tags alphabetically
         sorted_tags = sorted(by_tag.keys())
-        
+
         # Sort tasks within each tag by urgency
         for tag in by_tag:
             by_tag[tag].sort(key=lambda x: float(x["urgency"] or 0.0), reverse=True)
-        
+
         # Sort no-tag tasks by urgency
         no_tag_tasks.sort(key=lambda x: float(x["urgency"] or 0.0), reverse=True)
-        
-        return sorted_tags, by_tag, no_tag_tasks 
+
+        return sorted_tags, by_tag, no_tag_tasks
 
     def set_filter(self, filter_text):
         """Set text filter and update lists"""
@@ -179,10 +186,10 @@ class TaskManager:
     def debug_filters(self):
         """Return current filter state"""
         return {
-            'project_filter': self.filter_project,
-            'tag_filter': self.filter_tag,
-            'text_filter': self.filter_text,
-            'task_count': len(self.current_tasks),
-            'projects': self.projects,
-            'tags': self.tags
-        } 
+            "project_filter": self.filter_project,
+            "tag_filter": self.filter_tag,
+            "text_filter": self.filter_text,
+            "task_count": len(self.current_tasks),
+            "projects": self.projects,
+            "tags": self.tags,
+        }

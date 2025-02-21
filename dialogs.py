@@ -2,6 +2,7 @@ import curses
 import curses.textpad
 from datetime import datetime
 
+
 class Dialogs:
     @staticmethod
     def show_help(stdscr, config):
@@ -54,7 +55,7 @@ class Dialogs:
     def add_task(stdscr, task_manager):
         curses.echo()
         height, width = stdscr.getmaxyx()
-        
+
         # Get description
         stdscr.addstr(height - 2, 0, "Enter task description: ")
         description = stdscr.getstr().decode("utf-8")
@@ -67,7 +68,11 @@ class Dialogs:
         project = stdscr.getstr().decode("utf-8")
 
         # Get tags
-        stdscr.addstr(height - 2, 0, "Enter tags (comma-separated, optional): " + " " * (width - 35))
+        stdscr.addstr(
+            height - 2,
+            0,
+            "Enter tags (comma-separated, optional): " + " " * (width - 35),
+        )
         tags_str = stdscr.getstr().decode("utf-8")
         tags = [t.strip() for t in tags_str.split(",")] if tags_str else None
 
@@ -97,7 +102,9 @@ class Dialogs:
         while True:
             edit_win.clear()
             edit_win.box()
-            edit_win.addstr(0, 2, "Edit Task (Enter to edit, d to delete value, ESC to cancel)")
+            edit_win.addstr(
+                0, 2, "Edit Task (Enter to edit, d to delete value, ESC to cancel)"
+            )
 
             # Draw all fields, highlighting the current one
             for idx, (label, value) in enumerate(fields):
@@ -115,7 +122,7 @@ class Dialogs:
             elif key == ord("d"):  # Delete field value
                 field_name = fields[current_field][0]
                 fields[current_field] = (field_name, "")
-                
+
                 # Update task with empty value
                 if field_name == "Description":
                     # Don't allow empty description
@@ -134,7 +141,7 @@ class Dialogs:
                 edit_win.clrtoeol()
                 edit_win.box()  # Restore the box
                 edit_win.move(current_field + 1, len(fields[current_field][0]) + 4)
-                
+
                 # Get input
                 curses.echo()
                 value = edit_win.getstr().decode("utf-8")
@@ -143,7 +150,7 @@ class Dialogs:
                 if value:
                     field_name = fields[current_field][0]
                     fields[current_field] = (field_name, value)
-                    
+
                     # Update task with new value
                     if field_name == "Description":
                         task_manager.edit_task(task_idx, description=value)
@@ -162,10 +169,10 @@ class Dialogs:
                         except ValueError:
                             # Show error message
                             edit_win.addstr(
-                                current_field + 1, 
+                                current_field + 1,
                                 len(fields[current_field][0]) + len(value) + 5,
                                 " (Invalid date format)",
-                                curses.color_pair(5) | curses.A_BOLD
+                                curses.color_pair(5) | curses.A_BOLD,
                             )
                             edit_win.refresh()
                             curses.napms(1000)  # Show error for 1 second
@@ -254,25 +261,25 @@ class Dialogs:
     @staticmethod
     def filter_tasks(stdscr):
         height, width = stdscr.getmaxyx()
-        
+
         # Create filter window
         filter_win = curses.newwin(5, width - 4, height // 2 - 2, 2)
         filter_win.box()
         filter_win.addstr(0, 2, "Filter Tasks")
         filter_win.addstr(1, 2, "Enter text to filter by description, project, or tags")
         filter_win.addstr(2, 2, "Press Ctrl-G or Enter to apply, ESC to cancel")
-        
+
         # Create text input box
         text_win = curses.newwin(1, width - 8, height // 2 + 1, 4)
         text_box = curses.textpad.Textbox(text_win, insert_mode=True)
-        
+
         # Show cursor for text input
         curses.curs_set(1)
-        
+
         # Get filter text
         filter_win.refresh()
         text_win.refresh()
-        
+
         try:
             # Handle ESC key
             while True:
@@ -280,14 +287,14 @@ class Dialogs:
                 if c == 27:  # ESC
                     curses.curs_set(0)
                     return None
-                if c == ord('\n') or c == ord('\r'):
+                if c == ord("\n") or c == ord("\r"):
                     break
                 text_box.do_command(c)
                 text_win.refresh()
-            
+
             filter_text = text_box.gather().strip()
             curses.curs_set(0)
             return filter_text if filter_text else None
-            
+
         finally:
-            curses.curs_set(0) 
+            curses.curs_set(0)
