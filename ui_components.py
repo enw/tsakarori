@@ -105,6 +105,20 @@ class UIComponents:
         stdscr.addstr(1, detail_x + 1, "Task Details")
         stdscr.attroff(curses.color_pair(5))
 
+        # Get dependencies and force load if it's a LazyUUIDTaskSet
+        depends = task._data.get("depends", None)
+        dep_list = []
+        if depends:
+            # Handle both direct UUID lists and LazyUUIDTaskSet
+            if hasattr(depends, "_data"):
+                dep_uuids = depends._data
+            else:
+                dep_uuids = depends
+            
+            # Convert UUIDs to strings and store in dep_list
+            if dep_uuids:
+                dep_list = [str(uuid) for uuid in dep_uuids]
+
         # Draw task details
         details = [
             "",
@@ -124,36 +138,30 @@ class UIComponents:
             "",
             f"Due: {task['due'] or 'None'}",
             "",
-            "Depends on:",
+            f"Depends on: {', '.join(dep_list) if dep_list else 'None'}",
+            "",
         ]
 
         # Add dependencies if they exist
         blocked_by = []
-        
-        # Get dependencies from task._data
-        depends = task._data.get('depends', None)
-        if depends and hasattr(depends, '_data'):  # Handle LazyUUIDTaskSet
-            # Get the UUIDs from the LazyUUIDTaskSet
-            dep_uuids = depends._data
-            if dep_uuids:
-                # Find tasks that this task depends on
-                for t in task_manager.tw.tasks:
-                    if str(t._data.get('uuid', '')) in [str(uuid) for uuid in dep_uuids]:
-                        project_info = f" [{t['project']}]" if t['project'] else ""
-                        blocked_by.append(f"  - {t['description']}{project_info}")
-        
-        if blocked_by:
-            details.extend(blocked_by)
-        else:
-            details.append("  None")
+        if dep_list:
+            # Find tasks that this task depends on
+            for t in task_manager.tw.tasks:
+                if str(t._data.get("uuid", "")) in dep_list:
+                    project_info = f" [{t['project']}]" if t["project"] else ""
+                    blocked_by.append(f"  - {t['description']}{project_info}")
 
-        # Debug info
+        if blocked_by:
+            details.extend(["Blocked by:", *blocked_by, ""])
+
+        # Add debug info temporarily
         details.extend([
             "",
             "Debug info:",
-            f"  depends: {depends}",
-            f"  depends._data: {depends._data if hasattr(depends, '_data') else None}",
-            f"  task._data: {task._data}",
+            f"depends type: {type(depends)}",
+            f"depends value: {depends}",
+            f"depends._data (if exists): {depends._data if hasattr(depends, '_data') else 'N/A'}",
+            f"dep_list: {dep_list}",
         ])
 
         for idx, detail in enumerate(details):
@@ -366,13 +374,17 @@ class UIComponents:
                 stdscr, task_manager, selected_index
             )
             if selected_task:
-                UIComponents.draw_task_details(stdscr, selected_task, selected_index, task_manager)
+                UIComponents.draw_task_details(
+                    stdscr, selected_task, selected_index, task_manager
+                )
         elif current_view == "by_tags":
             selected_task = UIComponents.draw_task_list_by_tag(
                 stdscr, task_manager, selected_index
             )
             if selected_task:
-                UIComponents.draw_task_details(stdscr, selected_task, selected_index, task_manager)
+                UIComponents.draw_task_details(
+                    stdscr, selected_task, selected_index, task_manager
+                )
         else:
             UIComponents.draw_task_list(stdscr, current_tasks, selected_index)
             if selected_index < len(current_tasks):
@@ -414,16 +426,16 @@ class UIComponents:
 class TaskList:
     def __init__(self):
         self.task_service = TaskService()
-        
+
     def add_task(self, task_data: dict):
         return self.task_service.add_task(**task_data)
-        
+
     def get_filtered_tasks(self, project=None, tags=None):
         if project:
             return self.task_service.get_tasks_by_project(project)
         if tags:
             return self.task_service.get_tasks_by_tags(tags)
         return self.task_service.tasks
-        
+
     def get_sorted_tasks(self, sort_by):
         return self.task_service.sort_tasks(self.task_service.tasks, sort_by)

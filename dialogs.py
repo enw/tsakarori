@@ -369,7 +369,7 @@ class Dialogs:
 class TaskDialog:
     def __init__(self):
         self.task_service = TaskService()
-    
+
     def validate_input(self, description: str) -> bool:
         """Validate task input"""
         try:
@@ -378,7 +378,7 @@ class TaskDialog:
             return True
         except ValueError:
             return False
-    
+
     def validate_due_date(self, date_str: str) -> bool:
         """Validate due date format"""
         try:
