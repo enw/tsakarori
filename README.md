@@ -2,7 +2,15 @@
 
 ![Tsakarori TUI Demo](Tsakarori.png) _Example interface screenshot_
 
-A feature-rich terminal UI for Taskwarrior with enhanced task management capabilities and customizable interface.
+A feature-rich terminal UI for [Taskwarrior](https://taskwarrior.org/) with enhanced task management capabilities and customizable interface.
+
+## Prerequisites
+
+**Important**: Tsakarori requires a functional [Taskwarrior](https://taskwarrior.org/) installation. Please ensure you have Taskwarrior installed and configured before proceeding.
+
+- For Debian/Ubuntu: `sudo apt install taskwarrior`
+- For macOS: `brew install task`
+- For other platforms, see [Taskwarrior installation guide](https://taskwarrior.org/download/)
 
 ## Features
 
@@ -30,10 +38,12 @@ A feature-rich terminal UI for Taskwarrior with enhanced task management capabil
 ### Requirements
 
 - Python 3.8+
-- Taskwarrior installed and configured
+- Taskwarrior (task) installed and configured
 - `tasklib` Python package
 
 ```bash
+# First install Taskwarrior if you haven't already
+# Then install the Python dependency:
 pip install tasklib
 ```
 
@@ -99,3 +109,8 @@ python -m unittest discover tests
 ## License
 
 MIT License - See [LICENSE](LICENSE) for details
+
+## Related Links
+
+- [Taskwarrior Official Website](https://taskwarrior.org/)
+- [Taskwarrior Documentation](https://taskwarrior.org/docs/)
