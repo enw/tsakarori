@@ -1,5 +1,6 @@
 import curses
 
+
 class UIComponents:
     @staticmethod
     def draw_header(stdscr, current_view):
@@ -12,7 +13,9 @@ class UIComponents:
     @staticmethod
     def draw_footer(stdscr):
         height, width = stdscr.getmaxyx()
-        footer = " q:Quit | a:Add | d:Delete | e:Edit | f:Filter | v:Change View | ?:Help "
+        footer = (
+            " q:Quit | a:Add | d:Delete | e:Edit | f:Filter | v:Change View | ?:Help "
+        )
         stdscr.attron(curses.color_pair(2))
         stdscr.addstr(height - 1, 0, footer + " " * (width - len(footer) - 1))
         stdscr.attroff(curses.color_pair(2))
@@ -29,7 +32,9 @@ class UIComponents:
             stdscr.addstr(y, list_width, "│")
 
         # Sort tasks by urgency (highest to lowest)
-        sorted_tasks = sorted(current_tasks, key=lambda x: float(x['urgency'] or 0), reverse=True)
+        sorted_tasks = sorted(
+            current_tasks, key=lambda x: float(x["urgency"] or 0), reverse=True
+        )
 
         # Draw task list
         for idx, task in enumerate(sorted_tasks):
@@ -38,22 +43,24 @@ class UIComponents:
                 desc_width = 30
                 task_id = f"{task['id']:4}"
                 description = f"{task['description'][:desc_width]:<{desc_width}}"
-                
+
                 # Format metadata
                 urgency = f"U:{float(task['urgency'] or 0):4.1f}"
-                project = task['project'] or 'None'
+                project = task["project"] or "None"
                 tags = ",".join(task["tags"] or [])
                 metadata = f" ({urgency}, {project}, [{tags}])"
-                
+
                 # Truncate metadata if too long
                 available_width = list_width - len(task_id) - len(description) - 2
                 if len(metadata) > available_width:
-                    metadata = metadata[:available_width-3] + "...)"
-                
-                task_str = task_id + description + metadata
-                
+                    metadata = metadata[: available_width - 3] + "...)"
+
+                task_str = task_id + ". " + description + metadata
+
                 if idx == selected_index:
-                    stdscr.attron(curses.color_pair(3) | curses.A_BOLD)  # Selection color + bold
+                    stdscr.attron(
+                        curses.color_pair(3) | curses.A_BOLD
+                    )  # Selection color + bold
                     # Fill entire line width with selection color
                     stdscr.addstr(idx + 1, 0, " " * (list_width))
                     # Draw task info
@@ -95,12 +102,16 @@ class UIComponents:
             "",
             f"Priority: {task['priority'] or 'None'}",
             "",
-            f"Due: {task['due'] or 'None'}"
+            f"Due: {task['due'] or 'None'}",
         ]
 
         for idx, detail in enumerate(details):
             if idx + 2 < height - 1:  # Leave space for header and footer
-                if detail.startswith("Project:") or detail.startswith("Tags:") or detail == "Description:":
+                if (
+                    detail.startswith("Project:")
+                    or detail.startswith("Tags:")
+                    or detail == "Description:"
+                ):
                     stdscr.attron(curses.color_pair(5))
                     stdscr.addstr(idx + 2, detail_x + 1, detail[:detail_width])
                     stdscr.attroff(curses.color_pair(5))
@@ -111,10 +122,12 @@ class UIComponents:
     def draw_tasks(stdscr, current_tasks, selected_index):
         if not current_tasks:
             return
-            
+
         UIComponents.draw_task_list(stdscr, current_tasks, selected_index)
         if selected_index < len(current_tasks):
-            UIComponents.draw_task_details(stdscr, current_tasks[selected_index], selected_index)
+            UIComponents.draw_task_details(
+                stdscr, current_tasks[selected_index], selected_index
+            )
 
     @staticmethod
     def draw_stats(stdscr, task_manager):
@@ -144,4 +157,4 @@ class UIComponents:
                     stdscr.attroff(curses.color_pair(5))
                 else:
                     stdscr.addstr(idx + 1, 0, stat[: width - 1])
-        stdscr.attroff(curses.color_pair(4)) 
+        stdscr.attroff(curses.color_pair(4))
