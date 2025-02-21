@@ -1,61 +1,46 @@
+#!/usr/bin/env python3
 import json
 import os
-from pathlib import Path
 import curses
-
-DEFAULT_CONFIG = {
-    "color_scheme": "default",
-    "color_schemes": {
-        "default": {
-            "header": (curses.COLOR_BLACK, curses.COLOR_WHITE),
-            "footer": (curses.COLOR_BLACK, curses.COLOR_WHITE),
-            "selected": (curses.COLOR_BLACK, curses.COLOR_CYAN),
-            "normal": (curses.COLOR_WHITE, curses.COLOR_BLACK),
-            "highlight": (curses.COLOR_YELLOW, curses.COLOR_BLACK),
-        },
-        "night": {
-            "header": (curses.COLOR_GREEN, curses.COLOR_BLACK),
-            "footer": (curses.COLOR_GREEN, curses.COLOR_BLACK),
-            "selected": (curses.COLOR_BLACK, curses.COLOR_GREEN),
-            "normal": (curses.COLOR_GREEN, curses.COLOR_BLACK),
-            "highlight": (curses.COLOR_YELLOW, curses.COLOR_BLACK),
-        },
-        "day": {
-            "header": (curses.COLOR_BLUE, curses.COLOR_WHITE),
-            "footer": (curses.COLOR_BLUE, curses.COLOR_WHITE),
-            "selected": (curses.COLOR_WHITE, curses.COLOR_BLUE),
-            "normal": (curses.COLOR_BLACK, curses.COLOR_WHITE),
-            "highlight": (curses.COLOR_RED, curses.COLOR_WHITE),
-        },
-        "matrix": {
-            "header": (curses.COLOR_GREEN, curses.COLOR_BLACK),
-            "footer": (curses.COLOR_GREEN, curses.COLOR_BLACK),
-            "selected": (curses.COLOR_BLACK, curses.COLOR_GREEN),
-            "normal": (curses.COLOR_GREEN, curses.COLOR_BLACK),
-            "highlight": (curses.COLOR_WHITE, curses.COLOR_BLACK),
-        },
-    },
-}
-
 
 class Config:
     def __init__(self):
-        self.config_dir = Path.home() / ".config" / "tsakarori"
-        self.config_file = self.config_dir / "config.json"
-        self.config = DEFAULT_CONFIG.copy()
-        self.load_config()
+        self.config_file = os.path.expanduser("~/.config/tsakarori/config.json")
+        self.config = self.load_config()
 
     def load_config(self):
-        if self.config_file.exists():
-            with open(self.config_file) as f:
-                saved_config = json.load(f)
-                self.config.update(saved_config)
+        default_config = {
+            "color_scheme": "default",
+            "color_schemes": {
+                "default": {
+                    "header": [-1, curses.COLOR_BLUE],
+                    "footer": [-1, curses.COLOR_BLUE],
+                    "selected": [curses.COLOR_BLACK, curses.COLOR_WHITE],
+                    "normal": [-1, -1],
+                    "highlight": [curses.COLOR_YELLOW, -1]
+                },
+                "dark": {
+                    "header": [curses.COLOR_WHITE, curses.COLOR_BLUE],
+                    "footer": [curses.COLOR_WHITE, curses.COLOR_BLUE],
+                    "selected": [curses.COLOR_BLACK, curses.COLOR_WHITE],
+                    "normal": [-1, -1],
+                    "highlight": [curses.COLOR_YELLOW, -1]
+                }
+            }
+        }
+
+        if not os.path.exists(self.config_file):
+            os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
+            with open(self.config_file, "w") as f:
+                json.dump(default_config, f, indent=4)
+            return default_config
+
+        with open(self.config_file, "r") as f:
+            return json.load(f)
 
     def save_config(self):
-        self.config_dir.mkdir(parents=True, exist_ok=True)
         with open(self.config_file, "w") as f:
-            json.dump(self.config, f, indent=2)
+            json.dump(self.config, f, indent=4)
 
     def get_color_pairs(self):
-        scheme = self.config["color_schemes"][self.config["color_scheme"]]
-        return scheme
+        return self.config["color_schemes"][self.config["color_scheme"]]
